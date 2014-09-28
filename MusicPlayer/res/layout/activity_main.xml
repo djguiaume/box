@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:background="@android:color/background_dark" android:layout_width="fill_parent" android:layout_height="fill_parent" android:contentDescription="music"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentLeft="true" android:layout_alignParentRight="true" android:layout_alignParentBottom="true">
+        <LinearLayout android:gravity="center" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <ImageButton android:id="@id/imageButton2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/play" />
+            <ImageButton android:id="@id/imageButton1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/stop" />
+        </LinearLayout>
+        <SeekBar android:id="@id/seekBar1" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+    <ImageView android:id="@id/imageView1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/note" android:layout_centerHorizontal="true" android:layout_centerVertical="true" android:contentDescription="music image" />
+</RelativeLayout>

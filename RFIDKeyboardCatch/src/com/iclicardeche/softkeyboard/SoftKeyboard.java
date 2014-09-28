@@ -35,14 +35,12 @@ import android.view.inputmethod.InputMethodSubtype;
 
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 
 import com.iclicardeche.rfidkeyboardcatch.R;
 
+import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -97,6 +95,8 @@ public class SoftKeyboard extends InputMethodService implements
 	private String mWordSeparators;
 
 	private String tagId;
+	public static String extPath;
+	public static JSONArray jsonArray;
 
 	/**
 	 * Main initialization of the input method component. Be sure to call to
@@ -104,10 +104,14 @@ public class SoftKeyboard extends InputMethodService implements
 	 */
 	@Override
 	public void onCreate() {
-		super.onCreate();
+
 		mInputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
 		mWordSeparators = getResources().getString(R.string.word_separators);
 		tagId = "";
+		extPath = findExternal();
+		jsonArray = getArray();
+		Log.v("CLAVIER999999999999999", extPath);
+		super.onCreate();
 	}
 
 	/**
@@ -457,7 +461,7 @@ public class SoftKeyboard extends InputMethodService implements
 				 * .getMetaState(mMetaState));
 				 */
 				try {
-					if (compareStartToList(tagId, (char) event.getUnicodeChar()) == true) {
+					if (compareStartToList(tagId, (char) event.getUnicodeChar())) {
 						tagId += (char) event.getUnicodeChar();
 						return true;
 					}
@@ -466,27 +470,6 @@ public class SoftKeyboard extends InputMethodService implements
 					e.printStackTrace();
 				}
 
-				if (keyCode == KeyEvent.KEYCODE_SPACE
-						&& (event.getMetaState() & KeyEvent.META_ALT_ON) != 0) {
-					// A silly example: in our input method, Alt+Space
-					// is a shortcut for 'android' in lower case.
-					InputConnection ic = getCurrentInputConnection();
-					if (ic != null) {
-						// First, tell the editor that it is no longer in the
-						// shift state, since we are consuming this.
-						ic.clearMetaKeyStates(KeyEvent.META_ALT_ON);
-						keyDownUp(KeyEvent.KEYCODE_A);
-						keyDownUp(KeyEvent.KEYCODE_N);
-						keyDownUp(KeyEvent.KEYCODE_D);
-						keyDownUp(KeyEvent.KEYCODE_R);
-						keyDownUp(KeyEvent.KEYCODE_O);
-						keyDownUp(KeyEvent.KEYCODE_I);
-						keyDownUp(KeyEvent.KEYCODE_D);
-						// And we consume this event.
-
-						return true;
-					}
-				}
 				if (mPredictionOn && translateKeyDown(keyCode, event)) {
 					return true;
 				}
@@ -788,80 +771,101 @@ public class SoftKeyboard extends InputMethodService implements
 
 	private boolean compareStartToList(String tmp, char c) throws Exception {
 		Log.v("keyboardListener", "tmp=" + tmp + "-lenght=" + tmp.length());
-		if (tmp.length() >= 10) {
+		if (tmp.length() >= 8) {
 			tagId = "";
 			tmp = tagId;
 		}
 		tmp += c;
-
-		String file = JSONParser.getStringFromFile(Environment
-				.getExternalStorageDirectory() + "/tagslist.JSON");
-		// Log.v("JSONParser", file);
-		ArrayList tagList = new ArrayList();
-		if (file != null) {
-			try {
-				JSONObject jsonObj = new JSONObject(file);
-				JSONArray tags = jsonObj.getJSONArray("tags");
-				for (int i = 0; i < tags.length(); i++) {
-					JSONObject c1 = tags.getJSONObject(i);
-					String id = c1.getString("idtag");
-					if (id.startsWith(tmp) == true)
-						return true;
-				}
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		} else {
-			Log.e("ServiceHandler", "Couldn't get any data from the SDcard");
+		//JSONArray tags = getArray();
+		for (int i = 0; i < jsonArray.length(); i++) {
+			JSONObject c1 = jsonArray.getJSONObject(i);
+			String id = c1.getString("idtag");
+			if (id.startsWith(tmp) == true)
+				return true;
 		}
 		return false;
 	}
 
 	private boolean compareFullToList(String tmp) throws Exception {
-		String file = JSONParser.getStringFromFile(Environment
-				.getExternalStorageDirectory() + "/tagslist.JSON");
-		// Log.v("JSONParser", file);
-		ArrayList tagList = new ArrayList();
-		if (file != null) {
-			try {
-				JSONObject jsonObj = new JSONObject(file);
-				JSONArray tags = jsonObj.getJSONArray("tags");
-				for (int i = 0; i < tags.length(); i++) {
-					JSONObject c1 = tags.getJSONObject(i);
-					String id = c1.getString("idtag");
-					if (id.equalsIgnoreCase(tmp) == true) {
-						String type = c1.getString("type");
-						String ressource = c1.getString("ressource");
-						Intent chooser = new Intent();
+		//JSONArray tags = getArray();
+		for (int i = 0; i < jsonArray.length(); i++) {
+			JSONObject c1 = jsonArray.getJSONObject(i);
+			String id = c1.getString("idtag");
+			if (id.equalsIgnoreCase(tmp) == true) {
+				String type = c1.getString("type");
+				String ressource = c1.getString("ressource");
+				Intent chooser = new Intent();
 
-						// clean
-						keyDownUp(KeyEvent.KEYCODE_MEDIA_STOP);
-						keyDownUp(KeyEvent.KEYCODE_HOME);
-						keyDownUp(KeyEvent.KEYCODE_MOVE_HOME);
-						keyDownUp(KeyEvent.KEYCODE_BACK);
-						ActivityManager activityManager = (ActivityManager) this
-								.getSystemService(Activity.ACTIVITY_SERVICE);
-						activityManager
-								.killBackgroundProcesses("com.maxmpz.audioplayer");
-						activityManager
-								.killBackgroundProcesses("com.mxtech.videoplayer.ad");
-
-						if (type.equalsIgnoreCase("clean") == false) {
-							chooser = new AppLauncher().appFromId(id, type,
-									ressource, this.getApplicationContext(),
-									getCurrentInputConnection());
-							if (chooser != null)
-								this.startActivity(chooser);
-						}
-						return true;
-					}
+				// clean
+				cleanApps();
+				if (type.equalsIgnoreCase("clean") == false) {
+					chooser = new AppLauncher().appFromId(id, type, ressource,
+							this.getApplicationContext(),
+							getCurrentInputConnection(), extPath);
+					if (chooser != null)
+						this.startActivity(chooser);
 				}
-			} catch (JSONException e) {
-				e.printStackTrace();
+				return true;
 			}
-		} else {
-			Log.e("ServiceHandler", "Couldn't get any data from the SDcard");
 		}
 		return false;
+	}
+
+	private String findExternal() {
+		File storageDir = new File("/mnt/");
+		if (storageDir.isDirectory()) {
+			String[] dirList = storageDir.list();
+			Log.v("CLAVIER000", String.valueOf(dirList.length));
+			int i = 0;
+			int j = 0;
+			while (i < dirList.length) {
+				Log.v("CLAVIER00", dirList[i]);
+				File mntDir = new File("/mnt/" + dirList[i] + "/");
+				if (mntDir.isDirectory()) {
+					String[] mntList = mntDir.list();
+					if (mntList == null) {
+						Log.v("CLAVIER22", "NULL");
+					} else {
+						Log.v("CLAVIER22", String.valueOf(mntList.length));
+						while (j < mntList.length) {
+							Log.v("CLAVIER11", mntList[j]);
+							if (mntList[j].equalsIgnoreCase("tagslist.JSON"))
+								return "/mnt/" + dirList[i] + "/";
+							j++;
+						}
+					}
+				}
+				j = 0;
+				i++;
+			}
+		}
+		return null;
+	}
+
+	private JSONArray getArray() {
+		ArrayList tagList = new ArrayList();
+		try {
+			JSONObject jsonObj = new JSONObject(
+					JSONParser.getStringFromFile(extPath + "tagslist.JSON"));
+			JSONArray tags = jsonObj.getJSONArray("tags");
+			return tags;
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	private void cleanApps() {
+		//keyDownUp(KeyEvent.KEYCODE_MEDIA_STOP);
+		keyDownUp(KeyEvent.KEYCODE_HOME);
+		keyDownUp(KeyEvent.KEYCODE_MOVE_HOME);
+		keyDownUp(KeyEvent.KEYCODE_BACK);
+		ActivityManager activityManager = (ActivityManager) this
+				.getSystemService(Activity.ACTIVITY_SERVICE);
+		activityManager.killBackgroundProcesses("com.android.music");
+		activityManager.killBackgroundProcesses("com.rk.RockVideoPlayer");
 	}
 }

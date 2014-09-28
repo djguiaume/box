@@ -18,12 +18,18 @@ public class JSONParser {
 
 	public static ArrayList getFromJSON() throws Exception {
 
-		if (isExternalStorageReadable()) {
+		/*if (isExternalStorageReadable()) {
 			String file = getStringFromFile(Environment.getExternalStorageDirectory()+"/tagslist.JSON");
 			Log.v("JSONParser", file);
 			ArrayList tagList = parseJSON(file);
 
 			return tagList;
+		}*/
+		File storageDir = new File("/mnt/");
+		if(storageDir.isDirectory()){
+		    String[] dirList = storageDir.list();
+		    //TODO some type of selecton method?
+		    Log.v("CLAVIER", dirList.toString());
 		}
 		return null;
 	}
